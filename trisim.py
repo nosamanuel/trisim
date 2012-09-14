@@ -32,26 +32,26 @@ class Trie(object):
         node.data = data
 
     def search(self, q):
-        head, tail, results, clusters = q[0], q[1:], [], []
-        cluster = self._new_cluster()
-        return self._search_recursive(cluster, head, tail, results, clusters)
+        head, tail = q[0], q[1:]
+        cluster = self._new_cluster() + [head]
+        return self._search_recursive(head, tail, [], [], cluster)
 
-    def _search_recursive(self, cluster, head, tail, results, clusters):
+    def _search_recursive(self, head, tail, results, clusters, cluster):
         for item, node in self.children.iteritems():
             if not tail and node.data:
-                results.append(Result(node.data, len(clusters)))
+                result = Result(node.data, len(clusters))
+                results.append(result)
 
             if item == head:
                 new_cluster = (cluster + [head])[-self.cluster_size:]
-                new_clusters = list(clusters)
                 if node.cluster == new_cluster:
-                    new_clusters.append(cluster)
-                if tail:
-                    node._search_recursive(new_cluster, tail[0], tail[1:], results, new_clusters)
+                    new_clusters = clusters + [new_cluster]
                 else:
-                    node._search_recursive(new_cluster, None, [], results, new_clusters)
+                    new_clusters = clusters
+                node._search_recursive(tail[:1], tail[1:], results,
+                                       new_clusters, new_cluster)
             else:
-                node._search_recursive(cluster, head, tail, results, clusters)
+                node._search_recursive(head, tail, results, clusters, cluster)
 
         return results
 
