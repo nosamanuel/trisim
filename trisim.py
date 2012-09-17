@@ -1,57 +1,82 @@
 import sys
 
+CLUSTER_SIZE = 3
 
-class Result(object):
-    def __init__(self, data, similarity):
-        self.data = data
-        self.similarity = similarity
+def make_cluster(items=None, size=CLUSTER_SIZE):
+    if items:
+        return ([None] * size + list(items))[-size:]
+    else:
+        return [None] * size
 
-    def __repr__(self):
-        return u'<Result: %r, similarity=%d>' % (self.data, self.similarity)
+
+class TrieSearch(object):
+    def __init__(self, q, depth=0, results=None, clusters=None):
+        self.q = q
+        self.depth = depth
+        if results is not None:
+            self.results = results
+        else:
+            self.results = []
+        if clusters is not None:
+            self.clusters = clusters
+        else:
+            self.clusters = []
+
+    @property
+    def head(self):
+        return self.q[self.depth] if self.depth < len(self.q) else ''
+
+    @property
+    def tail(self):
+        return self.q[self.depth + 1:]
+
+    @property
+    def cluster(self):
+        return make_cluster(self.q[:self.depth + 1])
+
+    def search(self, node):
+        for item, node in node.children.iteritems():
+            if not self.tail and node.data:
+                self.results.append({
+                    'data': node.data,
+                    'similarity': len(self.clusters)
+                })
+
+            if item == self.head:
+                self.descend(node)
+            else:
+                self.search(node)
+
+        return self.results
+
+    def descend(self, node):
+        if node.cluster == self.cluster:
+            clusters = self.clusters + [node.cluster]
+        else:
+            clusters = self.clusters
+        search = TrieSearch(self.q, self.depth + 1, self.results, clusters)
+        search.search(node)
 
 
 class Trie(object):
-    cluster_size = 3
-
     def __init__(self, *cluster):
         self.children = {}
         self.data = None
         self.cluster = list(cluster)
 
-    def _new_cluster(self):
-        return [None] * self.cluster_size
-
     def insert(self, data):
         node = self
-        cluster = self._new_cluster()
+        cluster = make_cluster()
         for item in data:
-            cluster = (cluster + [item])[-self.cluster_size:]
+            cluster = make_cluster(cluster + [item])
             node.children.setdefault(item, Trie(*cluster))
             node = node.children[item]
 
         node.data = data
 
     def search(self, q):
-        head, tail = q[0], q[1:]
-        return self._search_recursive(head, tail, [], [], self._new_cluster())
-
-    def _search_recursive(self, head, tail, results, clusters, cluster):
-        for item, node in self.children.iteritems():
-            if not tail and node.data:
-                result = Result(node.data, len(clusters))
-                results.append(result)
-
-            if item == head:
-                new_cluster = (cluster + [head])[-self.cluster_size:]
-                if node.cluster == new_cluster:
-                    new_clusters = clusters + [new_cluster]
-                else:
-                    new_clusters = clusters
-                node._search_recursive(tail[:1], tail[1:], results,
-                                       new_clusters, new_cluster)
-            else:
-                node._search_recursive(head, tail, results, clusters, cluster)
-
+        search = TrieSearch(q)
+        results = search.search(self)
         return results
 
 
@@ -67,7 +92,7 @@ def load_trie():
 def main(script, q):
     trie = load_trie()
     results = trie.search(q.decode('utf-8'))
-    for r in sorted(results, key=lambda r: r.similarity, reverse=True):
+    for r in sorted(results, key=lambda r: r['similarity'], reverse=True):
         print r
 
 
