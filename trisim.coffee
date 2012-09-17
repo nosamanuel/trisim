@@ -20,8 +20,10 @@ class Trie
         node.data = data
 
     search: (q) ->
-        [head, tail] = [q[0], q[1..]]
-        @searchRecursive head, tail, [], [], @newCluster()
+        results = @searchRecursive q[0], q[1..], [], [], @newCluster()
+        results.sort (a, b) ->
+            b.similarity - a.similarity
+        return results
 
     searchRecursive: (head, tail, results, clusters, cluster) ->
         for item, node of @children
