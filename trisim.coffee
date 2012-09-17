@@ -12,32 +12,31 @@ class Trie
         node = @
         cluster = @newCluster()
         for item in data
-            cluster = (cluster.concat item)[1..@clusterSize]
-            if item not in node.children
+            cluster = (cluster.concat item)[-@clusterSize..]
+            if not node.children[item]
                 node.children[item] = new Trie(cluster)
             node = node.children[item]
 
         node.data = data
 
     search: (q) ->
-        [head, tail] = (q.slice 0) q[1..]
-        cluster = @newCluster().concat head
-        @searchRecursive head, tail, [], [], cluster
+        [head, tail] = [q[0], q[1..]]
+        @searchRecursive head, tail, [], [], @newCluster()
 
     searchRecursive: (head, tail, results, clusters, cluster) ->
-        for item, node in @children
+        for item, node of @children
             if not tail and node.data
-                results.append
+                results.push
                     data: node.data
                     similarity: clusters.length
 
             if item == head
-                newCluster = cluster[..].concat head
-                if node.cluster == newCluster
-                    newClusters = clusters[..].concat newCluster
+                newCluster = (cluster[..].concat head)[-@clusterSize..]
+                if node.cluster.join() == newCluster.join()
+                    newClusters = clusters[..].concat [newCluster]
                 else
                     newClusters = clusters
-                [newHead, newTail] = tail[..1] newTail = tail[1..]
+                [newHead, newTail] = [tail[0], tail[1..]]
                 node.searchRecursive newHead, newTail, results, newClusters, newCluster
             else
                 node.searchRecursive head, tail, results, clusters, cluster
