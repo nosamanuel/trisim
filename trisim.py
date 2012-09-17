@@ -33,8 +33,7 @@ class Trie(object):
 
     def search(self, q):
         head, tail = q[0], q[1:]
-        cluster = self._new_cluster() + [head]
-        return self._search_recursive(head, tail, [], [], cluster)
+        return self._search_recursive(head, tail, [], [], self._new_cluster())
 
     def _search_recursive(self, head, tail, results, clusters, cluster):
         for item, node in self.children.iteritems():
